@@ -9,11 +9,13 @@ export async function onRequestGet(context) {
 // 添加新的会议记录
 export async function onRequestPost(context) {
     const data = await context.request.json();
-    const { title, meeting_time, location, status, notes } = data;
+    
+    // 这里提取了前端发来的所有 8 个字段
+    const { title, meeting_time, location, meeting_type, department, leader, status, notes } = data;
     
     await context.env.DB.prepare(
-        "INSERT INTO meetings (title, meeting_time, location, status, notes) VALUES (?, ?, ?, ?, ?)"
-    ).bind(title, meeting_time, location, status, notes).run();
+        "INSERT INTO meetings (title, meeting_time, location, meeting_type, department, leader, status, notes) VALUES (?, ?, ?, ?, ?, ?, ?, ?)"
+    ).bind(title, meeting_time, location, meeting_type, department, leader, status, notes).run();
     
     return Response.json({ success: true });
 }
