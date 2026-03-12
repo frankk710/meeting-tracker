@@ -20,17 +20,17 @@
 2.  创建一个名为 `meeting_db` 的数据库。
 3.  在数据库控制台中执行以下 SQL 语句初始化表结构：
     ```sql
+    DROP TABLE IF EXISTS meetings;
     CREATE TABLE meetings (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        title TEXT NOT NULL,
-        meeting_time TEXT NOT NULL,
-        location TEXT NOT NULL,
-        meeting_type TEXT,
-        department TEXT,
-        leader TEXT,
-        status TEXT,
-        notes TEXT
-    );
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    title TEXT NOT NULL,          -- 会议名称
+    meeting_time TEXT NOT NULL,   -- 会议时间
+    location TEXT,                -- 会议地点
+    meeting_type TEXT DEFAULT '本地会', -- 会议类型
+    department TEXT,              -- 主办科室
+    leader TEXT,                  -- 参会领导
+    status TEXT DEFAULT '都不参加',  -- 参会范围
+    notes TEXT                    -- 备注/保障要求
     ```
 
 ### 2. 部署后端 (Cloudflare Workers)
