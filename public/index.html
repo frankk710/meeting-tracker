@@ -15,9 +15,9 @@
             background: white;
         }
 
-        table { border-collapse: collapse; width: 100%; }
+        table { border-collapse: collapse; width: 100%; table-layout: auto; }
         
-        /* 表头：图片中的灰色简约风格 */
+        /* 表头样式 */
         thead th {
             background-color: #f9fafb;
             border-bottom: 1px solid #e5e7eb;
@@ -29,7 +29,7 @@
             vertical-align: middle;
         }
 
-        /* 单元格：标准对齐与字号 */
+        /* 单元格样式 */
         tbody td {
             border-bottom: 1px solid #f3f4f6;
             border-right: 1px solid #f3f4f6;
@@ -41,17 +41,18 @@
         tbody tr:last-child td { border-bottom: none; }
         th:last-child, td:last-child { border-right: none; }
 
-        /* 强制不换行类：应用于 会议名称、地点、类型、主办科室 */
+        /* 【关键修改】强制不换行类：应用于 序号、会议名称、时间、类型、科室 */
         .nowrap-column {
             white-space: nowrap !important;
-            width: 1%; /* 尽可能压缩到文字实际宽度 */
+            width: 1%; /* 尽可能收缩到最小宽度 */
         }
 
-        /* 保障备注：唯一允许换行并吸收压缩压力的列 */
+        /* 【关键修改】保障备注：允许换行并吸收所有剩余的压缩压力 */
         .notes-column {
-            min-width: 180px;
+            min-width: 150px;
             word-break: break-all;
             white-space: normal !important;
+            text-align: left !important;
         }
 
         #mainContent { display: none; }
@@ -69,10 +70,10 @@
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
                 </svg>
             </div>
-            <h2 class="text-2xl font-black mb-2 text-gray-800 tracking-tight text-center">安全认证</h2>
+            <h2 class="text-2xl font-black mb-2 text-gray-800 tracking-tight">安全认证</h2>
             <div class="space-y-4">
                 <input type="password" id="webPassInput" placeholder="请输入访问密码" onkeypress="if(event.keyCode==13) checkLogin()" class="w-full bg-white/50 border border-blue-100 p-4 rounded-2xl text-center text-lg font-bold text-blue-900 outline-none">
-                <button onclick="checkLogin()" class="w-full bg-blue-500 hover:bg-blue-600 text-white p-4 rounded-2xl font-bold text-lg shadow-lg">立即进入</button>
+                <button onclick="checkLogin()" class="w-full bg-blue-500 hover:bg-blue-600 text-white p-4 rounded-2xl font-bold text-lg shadow-lg transition-all active:scale-95">立即进入</button>
             </div>
             <p id="loginError" class="text-red-500 mt-4 text-sm font-medium hidden">⚠️ 密码错误</p>
         </div>
@@ -116,7 +117,7 @@
                     <table>
                         <thead>
                             <tr>
-                                <th class="text-center">序号</th>
+                                <th class="text-center nowrap-column">序号</th>
                                 <th class="text-center nowrap-column">会议名称</th>
                                 <th class="text-center nowrap-column">时间</th>
                                 <th class="text-center nowrap-column">地点</th>
@@ -174,7 +175,7 @@
                 
                 tbody.innerHTML += `
                     <tr class="hover:bg-blue-50/30 transition-colors">
-                        <td class="text-center text-gray-400 font-mono text-sm">${index + 1}</td>
+                        <td class="text-center text-gray-400 font-mono text-sm nowrap-column">${index + 1}</td>
                         <td class="text-gray-800 text-center text-sm nowrap-column">${m.title}</td>
                         <td class="text-center whitespace-nowrap text-gray-500 text-sm">${m.meeting_time.replace('T', ' ')}</td>
                         <td class="text-center text-gray-600 text-sm nowrap-column">${m.location}</td>
@@ -186,7 +187,7 @@
                         <td class="text-center whitespace-nowrap text-sm ${statusColor}">${m.status}</td>
                         <td class="notes-column text-gray-500 text-sm leading-relaxed">${m.notes || '-'}</td>
                         <td class="text-center whitespace-nowrap">
-                            <button onclick="editMeeting(${m.id})" class="text-blue-500 hover:text-blue-800 font-bold mr-3 underline text-sm">修改</button>
+                            <button onclick="editMeeting(${m.id})" class="text-blue-500 hover:text-blue-700 font-bold mr-3 underline text-sm">修改</button>
                             <button onclick="deleteMeeting(${m.id})" class="text-red-400 hover:text-red-600 font-bold underline text-sm">删除</button>
                         </td>
                     </tr>`;
