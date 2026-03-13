@@ -41,13 +41,13 @@
         tbody tr:last-child td { border-bottom: none; }
         th:last-child, td:last-child { border-right: none; }
 
-        /* 【关键修改】强制不换行类：应用于 序号、会议名称、时间、类型、科室 */
+        /* 强制不换行类：应用于 序号、会议名称、时间、类型、科室 */
         .nowrap-column {
             white-space: nowrap !important;
-            width: 1%; /* 尽可能收缩到最小宽度 */
+            width: 1%; 
         }
 
-        /* 【关键修改】保障备注：允许换行并吸收所有剩余的压缩压力 */
+        /* 保障备注：允许换行并吸收压缩压力 */
         .notes-column {
             min-width: 150px;
             word-break: break-all;
@@ -92,7 +92,15 @@
                     <input type="hidden" id="edit_id" value="">
                     <input type="text" id="title" placeholder="会议名称" required class="border p-3 rounded-xl md:col-span-2 bg-gray-50 outline-none">
                     <input type="datetime-local" id="meeting_time" required class="border p-3 rounded-xl bg-gray-50">
-                    <input type="text" id="location" placeholder="会议地点" required class="border p-3 rounded-xl bg-gray-50">
+                    
+                    <select id="location" required class="border p-3 rounded-xl bg-gray-50 outline-none">
+                        <option value="" disabled selected>选择会议地点</option>
+                        <option value="会商室">会商室</option>
+                        <option value="值班室">值班室</option>
+                        <option value="指挥中心">指挥中心</option>
+                        <option value="西会议室">西会议室</option>
+                    </select>
+
                     <select id="meeting_type" class="border p-3 rounded-xl bg-gray-50">
                         <option value="本地会">本地会</option>
                         <option value="视频会">视频会</option>
