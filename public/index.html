@@ -3,7 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>📆会议保障清单 - 安全认证</title>
+    <title>会议保障清单 - 安全认证</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📅</text></svg>">
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <style>
@@ -202,17 +203,20 @@
                 const meetingDate = new Date(m.meeting_time);
                 const isFutureOrToday = meetingDate >= today;
 
-                // --- 粉色高亮方案 ---
-                // 未来的行：背景粉色(bg-rose-50)，左边框加粗粉红(border-l-rose-500)
-                // 过去的行：设置透明度(opacity-50)，视觉上退后
-                const highlightClass = isFutureOrToday ? 'bg-rose-50/80 border-l-4 border-l-rose-500' : 'opacity-60 bg-gray-50/50';
+                // --- 粉色高亮核心逻辑 ---
+                // 未来或今日：背景显眼的粉色(bg-rose-100/50)，左侧加粗深粉边框(border-l-rose-500)
+                // 过去的记录：视觉淡化(opacity-50)
+                const highlightClass = isFutureOrToday 
+                    ? 'bg-rose-100/50 border-l-4 border-l-rose-500 shadow-sm' 
+                    : 'opacity-50 bg-gray-50/50';
+                
                 const titleStyle = isFutureOrToday ? 'font-bold text-rose-900' : 'text-gray-400';
                 
                 const statusColor = m.status.includes('镇街') ? 'text-red-600 font-bold' : (m.status.includes('区市') ? 'text-blue-600 font-bold' : 'text-gray-500');
                 let typeStyle = typeColorMap[m.meeting_type] || 'bg-gray-100 text-gray-700 border-gray-200';
                 
                 tbody.innerHTML += `
-                    <tr class="hover:bg-rose-100/40 transition-colors ${highlightClass}">
+                    <tr class="hover:bg-rose-200/30 transition-colors ${highlightClass}">
                         <td class="text-center text-gray-400 font-mono text-sm nowrap-column">${index + 1}</td>
                         <td class="text-center text-sm nowrap-column ${titleStyle}">${m.title}</td>
                         <td class="text-center whitespace-nowrap text-gray-500 text-sm">${m.meeting_time.replace('T', ' ')}</td>
