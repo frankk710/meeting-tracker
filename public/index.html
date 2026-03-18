@@ -202,16 +202,16 @@
 
                 // 核心修改：今日及以后使用粉色底色，过去使用淡灰色
                 const rowHighlightClass = isFutureOrToday 
-                    ? 'bg-pink-50 border-l-4 border-l-pink-400' 
+                    ? 'bg-[#b367b5]/10 border-l-4 border-l-[#b367b5] shadow-sm' // 背景设为10%透明度，边框为实色
                     : 'opacity-60 bg-white';
                 
-                const titleTextColor = isFutureOrToday ? 'text-pink-900 font-bold' : 'text-gray-800';
+                const titleTextColor = isFutureOrToday ? 'text-[#b367b5] font-bold' : 'text-gray-800';
 
                 let statusColor = m.status.includes('镇街') ? 'text-red-600 font-bold' : (m.status.includes('区市') ? 'text-blue-600 font-bold' : 'text-gray-500');
                 let typeStyle = typeColorMap[m.meeting_type] || 'bg-gray-100 text-gray-700 border-gray-200';
                 
                 tbody.innerHTML += `
-                    <tr class="hover:bg-pink-100/50 transition-colors ${rowHighlightClass}">
+                    <tr class="hover:bg-[#b367b5]/20 transition-colors ${rowHighlightClass}">
                         <td class="text-center text-gray-400 font-mono text-sm nowrap-column">${index + 1}</td>
                         <td class="text-center text-sm nowrap-column ${titleTextColor}">${m.title}</td>
                         <td class="text-center whitespace-nowrap text-gray-500 text-sm">${m.meeting_time.replace('T', ' ')}</td>
