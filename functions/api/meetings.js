@@ -1,289 +1,81 @@
-<!DOCTYPE html>
-<html lang="zh-CN">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>会议保障排期表 - 完整修复版</title>
-    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📅</text></svg>">
-    
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-    <style>
-        .table-container { border: 1px solid #e5e7eb; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05); background: white; }
-        table { border-collapse: collapse; width: 100%; table-layout: auto; }
-        thead th { background-color: #f9fafb; border-bottom: 1px solid #e5e7eb; border-right: 1px solid #f3f4f6; color: #374151; font-weight: 700; padding: 16px 12px !important; font-size: 0.95rem; vertical-align: middle; }
-        tbody td { border-bottom: 1px solid #f3f4f6; border-right: 1px solid #f3f4f6; padding: 14px 12px !important; vertical-align: middle; color: #4b5563; }
-        .nowrap-column { white-space: nowrap !important; width: 1%; }
-        .notes-column { min-width: 150px; word-break: break-all; white-space: normal !important; text-align: left !important; }
-        #mainContent { display: none; }
-        ::-webkit-scrollbar { width: 6px; height: 6px; }
-        ::-webkit-scrollbar-thumb { background: #bae6fd; border-radius: 3px; }
-    </style>
-</head>
-<body class="bg-gray-50">
+// 通用权限检查函数
+async function checkAuth(request, env) {
+    // 1. 验证全局网页访问密码 (Web Access Password)
+    const webPassword = request.headers.get("X-Web-Password");
+    const serverWebPassword = env.WEB_PASSWORD; // Cloudflare 后台设置的变量
 
-    <div id="loginOverlay" class="fixed inset-0 flex items-center justify-center z-[999]">
-        <div class="absolute inset-0 bg-gradient-to-br from-blue-400 to-sky-200"></div>
-        <div class="relative bg-white/80 backdrop-blur-xl p-10 rounded-[2.5rem] shadow-2xl w-[400px] border border-white/50 text-center">
-            <h2 class="text-2xl font-black mb-6 text-gray-800">安全认证</h2>
-            <input type="password" id="webPassInput" placeholder="请输入访问密码" onkeypress="if(event.keyCode==13) checkLogin()" class="w-full bg-white/50 border border-blue-100 p-4 rounded-2xl text-center text-lg font-bold outline-none mb-4">
-            <button onclick="checkLogin()" class="w-full bg-blue-500 hover:bg-blue-600 text-white p-4 rounded-2xl font-bold text-lg shadow-lg">立即进入</button>
-            <p id="loginError" class="text-red-500 mt-4 text-sm font-medium hidden">⚠️ 密码错误</p>
-        </div>
-    </div>
-
-    <div id="mainContent" class="p-6">
-        <div class="w-[98%] mx-auto">
-            <div class="flex justify-between items-end mb-8">
-                <div>
-                    <h1 class="text-3xl font-black text-blue-600">🗓️ 会议保障排期表</h1>
-                    <p class="text-gray-400 text-sm mt-1">系统已就绪，粉色高亮显示今日及后续会议</p>
-                </div>
-                <div class="flex items-center gap-5">
-                    <button onclick="exportToExcel()" class="bg-emerald-500 hover:bg-emerald-600 text-white px-6 py-2 rounded-xl font-bold shadow-md flex items-center gap-2 transition-all">导出表格</button>
-                    <button onclick="logout()" class="text-gray-400 hover:text-red-500 transition-colors text-sm font-medium cursor-pointer">退出登录</button>
-                </div>
-            </div>
-
-            <div class="bg-white p-6 rounded-3xl shadow-sm mb-8 border border-gray-100">
-                <h2 class="text-xl font-bold mb-4 text-gray-700" id="formTitle">➕ 新增会议任务</h2>
-                <form id="addMeetingForm" class="grid grid-cols-1 md:grid-cols-4 gap-4">
-                    <input type="hidden" id="edit_id" value="">
-                    
-                    <input type="text" id="title" placeholder="会议名称" required class="border p-3 rounded-xl md:col-span-2 bg-gray-50 outline-none focus:ring-2 focus:ring-blue-200">
-                    <div class="flex items-center gap-2 md:col-span-2">
-                        <input type="datetime-local" id="meeting_time" required class="border p-3 rounded-xl bg-gray-50 w-full">
-                        <span class="text-gray-400">至</span>
-                        <input type="datetime-local" id="meeting_end_time" class="border p-3 rounded-xl bg-gray-50 w-full" title="选填">
-                    </div>
-
-                    <select id="location" required class="border p-3 rounded-xl bg-gray-50 outline-none">
-                        <option value="" disabled selected>选择会议地点</option>
-                        <option value="会商室">会商室</option>
-                        <option value="值班室">值班室</option>
-                        <option value="指挥中心">指挥中心</option>
-                        <option value="西会议室">西会议室</option>
-                    </select>
-                    <select id="meeting_type" class="border p-3 rounded-xl bg-gray-50">
-                        <option value="本地会">本地会</option>
-                        <option value="视频会">视频会</option>
-                        <option value="调度会">调度会</option>
-                        <option value="参观接待">参观接待</option>
-                        <option value="突发事件">突发事件</option>
-                    </select>
-                    <input type="text" id="department" placeholder="主办科室" class="border p-3 rounded-xl bg-gray-50">
-                    <select id="status" class="border p-3 rounded-xl bg-gray-50">
-                        <option value="市级">市级</option>
-                        <option value="区市参加">区市参加</option>
-                        <option value="区市、镇街参加">区市、镇街参加</option>
-                    </select>
-
-                    <input type="text" id="leader" placeholder="参会领导" class="border p-3 rounded-xl bg-gray-50 md:col-span-2">
-                    <input type="text" id="notes" placeholder="保障要求与备注" class="border p-3 rounded-xl bg-gray-50 md:col-span-2">
-
-                    <div class="md:col-span-4 mt-2">
-                        <button type="submit" id="submitBtn" class="w-full bg-blue-500 text-white p-4 rounded-xl font-black text-lg shadow-lg hover:bg-blue-600">保存会议排期</button>
-                    </div>
-                </form>
-            </div>
-
-            <div class="table-container">
-                <div class="overflow-x-auto">
-                    <table id="meetingTableMain">
-                        <thead>
-                            <tr>
-                                <th class="text-center nowrap-column">序号</th>
-                                <th class="text-center nowrap-column">会议名称</th>
-                                <th class="text-center nowrap-column">起止时间</th>
-                                <th class="text-center nowrap-column">地点</th>
-                                <th class="text-center nowrap-column">类型</th>
-                                <th class="text-center nowrap-column">主办科室</th>
-                                <th class="text-center">参会领导</th>
-                                <th class="text-center nowrap-column">参会范围</th>
-                                <th class="text-left notes-column">保障备注</th>
-                                <th class="text-center no-export">操作</th>
-                            </tr>
-                        </thead>
-                        <tbody id="meetingList"></tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <script>
-        let meetingDataList = [];
-        let authToken = sessionStorage.getItem('meeting_access_token');
-
-        window.onload = () => { if (authToken) showSystem(); };
-
-        async function checkLogin() {
-            const pwd = document.getElementById('webPassInput').value;
-            const res = await fetch('/api/meetings', { headers: { 'X-Web-Password': pwd } });
-            if (res.ok) { sessionStorage.setItem('meeting_access_token', pwd); authToken = pwd; showSystem(); }
-            else { document.getElementById('loginError').classList.remove('hidden'); }
-        }
-
-        function showSystem() {
-            document.getElementById('loginOverlay').classList.add('hidden');
-            document.getElementById('mainContent').style.display = 'block';
-            loadMeetings();
-        }
-
-        function logout() {
-            sessionStorage.removeItem('meeting_access_token');
-            location.reload();
-        }
-
-        async function loadMeetings() {
-            try {
-                const res = await fetch('/api/meetings', { headers: { 'X-Web-Password': authToken } });
-                if (!res.ok) return;
-                meetingDataList = await res.json();
-                renderTable();
-            } catch (e) { console.error(e); }
-        }
-
-        function renderTable() {
-            const tbody = document.getElementById('meetingList');
-            tbody.innerHTML = '';
-            const today = new Date();
-            today.setHours(0, 0, 0, 0);
-
-            const typeColorMap = {
-                '本地会': 'bg-blue-50 text-blue-700 border-blue-200',
-                '视频会': 'bg-purple-50 text-purple-700 border-purple-200',
-                '调度会': 'bg-orange-50 text-orange-700 border-orange-200',
-                '参观接待': 'bg-emerald-50 text-emerald-700 border-emerald-200',
-                '突发事件': 'bg-red-50 text-red-700 border-red-200'
-            };
-
-            meetingDataList.forEach((m, index) => {
-                const meetingDate = new Date(m.meeting_time);
-                const isFutureOrToday = meetingDate >= today;
-                const rowHighlightClass = isFutureOrToday ? 'bg-pink-50 border-l-4 border-l-pink-400' : 'opacity-60 bg-white';
-                
-                let timeDisplay = `<div class="text-blue-600 font-medium">起: ${m.meeting_time.replace('T', ' ')}</div>`;
-                if (m.meeting_end_time && m.meeting_end_time.trim() !== "") {
-                    timeDisplay += `<div class="text-red-500 font-medium">止: ${m.meeting_end_time.replace('T', ' ')}</div>`;
-                }
-
-                let statusColor = m.status.includes('镇街') ? 'text-red-600 font-bold' : (m.status.includes('区市') ? 'text-blue-600 font-bold' : 'text-gray-500');
-                const typeStyle = typeColorMap[m.meeting_type] || 'bg-gray-50 text-gray-700 border-gray-200';
-                
-                tbody.innerHTML += `
-                    <tr class="hover:bg-pink-100/50 transition-colors ${rowHighlightClass}">
-                        <td class="text-center text-gray-400 font-mono text-sm nowrap-column">${index + 1}</td>
-                        <td class="text-center text-sm nowrap-column font-bold text-gray-800">${m.title}</td>
-                        <td class="text-left whitespace-nowrap text-sm px-4">${timeDisplay}</td>
-                        <td class="text-center text-gray-600 text-sm nowrap-column">${m.location}</td>
-                        <td class="text-center nowrap-column">
-                            <span class="px-3 py-1 rounded-full text-xs font-bold border ${typeStyle}">${m.meeting_type}</span>
-                        </td>
-                        <td class="text-center text-gray-600 text-sm nowrap-column">${m.department || '-'}</td>
-                        <td class="text-center">${createLeaderTags(m.leader)}</td>
-                        <td class="text-center nowrap-column text-sm ${statusColor}">${m.status}</td>
-                        <td class="notes-column text-gray-500 text-sm leading-relaxed">${m.notes || '-'}</td>
-                        <td class="text-center whitespace-nowrap no-export">
-                            <button onclick="editMeeting(${m.id})" class="text-blue-500 hover:text-blue-700 font-bold mr-3 underline text-sm">修改</button>
-                            <button onclick="deleteMeeting(${m.id})" class="text-red-400 hover:text-red-600 font-bold underline text-sm">删除</button>
-                        </td>
-                    </tr>`;
-            });
-        }
-
-        function createLeaderTags(str) {
-            if (!str || str === '-') return '-';
-            return str.split(/[、,，\s]+/).filter(n => n.trim() !== '').map(name => 
-                `<span class="inline-block bg-blue-50 text-black border border-blue-100 px-2 py-0.5 rounded-lg mr-1 mb-1 text-sm whitespace-nowrap">${name}</span>`
-            ).join('');
-        }
-
-        function checkConflict(newData) {
-            const newStart = new Date(newData.meeting_time).getTime();
-            const newEnd = newData.meeting_end_time ? new Date(newData.meeting_end_time).getTime() : newStart + 60000;
-
-            if (newData.meeting_end_time && newEnd <= newStart) {
-                alert("❌ 错误：结束时间必须晚于开始时间");
-                return true;
-            }
-
-            for (const exist of meetingDataList) {
-                if (newData.id && exist.id === newData.id) continue;
-                if (exist.location === newData.location) {
-                    const existStart = new Date(exist.meeting_time).getTime();
-                    const existEnd = exist.meeting_end_time ? new Date(exist.meeting_end_time).getTime() : existStart + 60000;
-                    if (newStart < existEnd && newEnd > existStart) {
-                        alert(`⚠️ 冲突！${newData.location}在该时段已有会议：\n「${exist.title}」`);
-                        return true;
-                    }
-                }
-            }
-            return false;
-        }
-
-        document.getElementById('addMeetingForm').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const editId = document.getElementById('edit_id').value;
-            const data = {
-                id: editId ? Number(editId) : undefined,
-                title: document.getElementById('title').value,
-                meeting_time: document.getElementById('meeting_time').value,
-                meeting_end_time: document.getElementById('meeting_end_time').value,
-                location: document.getElementById('location').value,
-                meeting_type: document.getElementById('meeting_type').value,
-                department: document.getElementById('department').value,
-                leader: document.getElementById('leader').value,
-                status: document.getElementById('status').value,
-                notes: document.getElementById('notes').value
-            };
-
-            if (checkConflict(data)) return;
-
-            await fetch('/api/meetings', {
-                method: editId ? 'PUT' : 'POST',
-                headers: { 'Content-Type': 'application/json', 'X-Web-Password': authToken },
-                body: JSON.stringify(data)
-            });
-            resetForm(); loadMeetings();
+    if (webPassword !== serverWebPassword) {
+        return new Response(JSON.stringify({ error: "未授权访问，请重新登录" }), { 
+            status: 401,
+            headers: { "Content-Type": "application/json" }
         });
+    }
+    return null; // 验证通过
+}
 
-        function editMeeting(id) {
-            const m = meetingDataList.find(i => i.id === id);
-            document.getElementById('edit_id').value = m.id;
-            document.getElementById('title').value = m.title;
-            document.getElementById('meeting_time').value = m.meeting_time;
-            document.getElementById('meeting_end_time').value = m.meeting_end_time || '';
-            document.getElementById('location').value = m.location;
-            document.getElementById('meeting_type').value = m.meeting_type;
-            document.getElementById('department').value = m.department;
-            document.getElementById('leader').value = m.leader;
-            document.getElementById('status').value = m.status;
-            document.getElementById('notes').value = m.notes;
-            document.getElementById('formTitle').innerText = '✏️ 修改会议记录';
-            window.scrollTo({ top: 0, behavior: 'smooth' });
-        }
+// 1. 获取所有会议记录 (GET)
+export async function onRequestGet(context) {
+    const authError = await checkAuth(context.request, context.env);
+    if (authError) return authError;
 
-        function resetForm() {
-            document.getElementById('addMeetingForm').reset();
-            document.getElementById('edit_id').value = '';
-            document.getElementById('formTitle').innerText = '➕ 新增会议任务';
-        }
+    const { results } = await context.env.DB.prepare(
+        "SELECT * FROM meetings ORDER BY meeting_time DESC"
+    ).all();
+    return Response.json(results);
+}
 
-        async function deleteMeeting(id) {
-            if (!confirm("确认删除？")) return;
-            await fetch(`/api/meetings?id=${id}`, {
-                method: 'DELETE',
-                headers: { 'X-Web-Password': authToken }
-            });
-            loadMeetings();
-        }
+// 2. 添加新的会议记录 (POST)
+export async function onRequestPost(context) {
+    const authError = await checkAuth(context.request, context.env);
+    if (authError) return authError;
 
-        function exportToExcel() {
-            const table = document.getElementById('meetingTableMain');
-            const wb = XLSX.utils.table_to_book(table, { sheet: "排期表" });
-            XLSX.writeFile(wb, `会议保障排期表.xlsx`);
-        }
-    </script>
-</body>
-</html>
+    const data = await context.request.json();
+    const { title, meeting_time, location, meeting_type, department, leader, status, notes } = data;
+    
+    await context.env.DB.prepare(
+        "INSERT INTO meetings (title, meeting_time, location, meeting_type, department, leader, status, notes) VALUES (?, ?, ?, ?, ?, ?, ?, ?)"
+    ).bind(title, meeting_time, location, meeting_type, department, leader, status, notes).run();
+    
+    return Response.json({ success: true });
+}
+
+// 3. 修改会议记录 (PUT)
+export async function onRequestPut(context) {
+    const authError = await checkAuth(context.request, context.env);
+    if (authError) return authError;
+
+    const data = await context.request.json();
+    const { id, title, meeting_time, location, meeting_type, department, leader, status, notes } = data;
+    
+    if (!id) return Response.json({ error: "缺少ID" }, { status: 400 });
+
+    await context.env.DB.prepare(
+        "UPDATE meetings SET title=?, meeting_time=?, location=?, meeting_type=?, department=?, leader=?, status=?, notes=? WHERE id=?"
+    ).bind(title, meeting_time, location, meeting_type, department, leader, status, notes, id).run();
+    
+    return Response.json({ success: true });
+}
+
+// 4. 删除会议记录 (DELETE) - 【双重保护：访问密码 + 管理员删除密码】
+export async function onRequestDelete(context) {
+    // 首先检查网页访问权限
+    const authError = await checkAuth(context.request, context.env);
+    if (authError) return authError;
+
+    // 其次检查管理员删除密码
+    const clientAdminPassword = context.request.headers.get("X-Admin-Password");
+    const serverAdminPassword = context.env.ADMIN_PASSWORD || "123456";
+
+    if (clientAdminPassword !== serverAdminPassword) {
+        return Response.json({ error: "管理员密码错误，无权删除！" }, { status: 403 });
+    }
+
+    const url = new URL(context.request.url);
+    const id = url.searchParams.get("id");
+
+    if (!id) return Response.json({ error: "缺少ID" }, { status: 400 });
+
+    await context.env.DB.prepare("DELETE FROM meetings WHERE id=?").bind(id).run();
+    
+    return Response.json({ success: true });
+}
