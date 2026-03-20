@@ -3,18 +3,39 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>会议保障排期表 - 完整测试版</title>
+    <title>会议保障排期表 - 完整正式版</title>
     <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📅</text></svg>">
     
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <style>
         .table-container { border: 1px solid #e5e7eb; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05); background: white; }
-        table { border-collapse: collapse; width: 100%; table-layout: auto; }
-        thead th { background-color: #f9fafb; border-bottom: 1px solid #e5e7eb; border-right: 1px solid #f3f4f6; color: #374151; font-weight: 700; padding: 16px 12px !important; font-size: 0.95rem; vertical-align: middle; }
-        tbody td { border-bottom: 1px solid #f3f4f6; border-right: 1px solid #f3f4f6; padding: 14px 12px !important; vertical-align: middle; color: #4b5563; }
-        .nowrap-column { white-space: nowrap !important; width: 1%; }
-        .notes-column { min-width: 150px; word-break: break-all; white-space: normal !important; text-align: left !important; }
+        
+        /* --- 核心布局修改：固定比例布局 --- */
+        table { 
+            border-collapse: collapse; 
+            width: 100%; 
+            table-layout: fixed; /* 强制固定列宽，不随内容撑开 */
+        }
+
+        thead th { background-color: #f9fafb; border-bottom: 1px solid #e5e7eb; border-right: 1px solid #f3f4f6; color: #374151; font-weight: 700; padding: 16px 12px !important; font-size: 0.9rem; vertical-align: middle; }
+        tbody td { border-bottom: 1px solid #f3f4f6; border-right: 1px solid #f3f4f6; padding: 12px !important; vertical-align: middle; color: #4b5563; font-size: 0.875rem; }
+
+        /* 定义每一列的宽度占比 */
+        .col-idx { width: 50px; }       /* 序号 */
+        .col-title { width: 15%; }      /* 会议名称 */
+        .col-time { width: 170px; }     /* 起止时间 (固定宽度防止换行) */
+        .col-loc { width: 100px; }      /* 地点 */
+        .col-type { width: 85px; }      /* 类型 */
+        .col-dept { width: 100px; }     /* 主办科室 */
+        .col-leader { width: 15%; }     /* 参会领导 */
+        .col-scope { width: 110px; }    /* 参会范围 */
+        .col-notes { width: auto; }      /* 备注：设为 auto 吸收剩余所有空间 */
+        .col-ops { width: 110px; }      /* 操作：固定宽度，不再留白 */
+
+        /* 文本溢出处理：备注列如果太长会自动折行 */
+        .cell-content { word-break: break-all; overflow: hidden; }
+
         #mainContent { display: none; }
         ::-webkit-scrollbar { width: 6px; height: 6px; }
         ::-webkit-scrollbar-thumb { background: #bae6fd; border-radius: 3px; }
@@ -37,7 +58,7 @@
             <div class="flex justify-between items-end mb-8">
                 <div>
                     <h1 class="text-3xl font-black text-blue-600">🗓️ 会议保障排期表</h1>
-                    <p class="text-gray-400 text-sm mt-1">系统已就绪，结束时间最晚的会议将自动排在首位</p>
+                    <p class="text-gray-400 text-sm mt-1">系统已就绪，正在进行的会议将自动置顶并以粉色高亮</p>
                 </div>
                 <div class="flex items-center gap-5">
                     <button onclick="exportToExcel()" class="bg-emerald-500 hover:bg-emerald-600 text-white px-6 py-2 rounded-xl font-bold shadow-md flex items-center gap-2 transition-all">导出表格</button>
@@ -49,12 +70,11 @@
                 <h2 class="text-xl font-bold mb-4 text-gray-700" id="formTitle">➕ 新增会议任务</h2>
                 <form id="addMeetingForm" class="grid grid-cols-1 md:grid-cols-4 gap-4">
                     <input type="hidden" id="edit_id" value="">
-                    
                     <input type="text" id="title" placeholder="会议名称" required class="border p-3 rounded-xl md:col-span-2 bg-gray-50 outline-none focus:ring-2 focus:ring-blue-200">
                     <div class="flex items-center gap-2 md:col-span-2">
                         <input type="datetime-local" id="meeting_time" required class="border p-3 rounded-xl bg-gray-50 w-full">
-                        <span class="text-gray-400">至</span>
-                        <input type="datetime-local" id="meeting_end_time" class="border p-3 rounded-xl bg-gray-50 w-full" title="选填">
+                        <span class="text-gray-400 text-xs">至</span>
+                        <input type="datetime-local" id="meeting_end_time" class="border p-3 rounded-xl bg-gray-50 w-full">
                     </div>
 
                     <select id="location" required class="border p-3 rounded-xl bg-gray-50 outline-none">
@@ -92,16 +112,16 @@
                     <table id="meetingTableMain">
                         <thead>
                             <tr>
-                                <th class="text-center nowrap-column">序号</th>
-                                <th class="text-center nowrap-column">会议名称</th>
-                                <th class="text-center nowrap-column">起止时间</th>
-                                <th class="text-center nowrap-column">地点</th>
-                                <th class="text-center nowrap-column">类型</th>
-                                <th class="text-center nowrap-column">主办科室</th>
-                                <th class="text-center">参会领导</th>
-                                <th class="text-center nowrap-column">参会范围</th>
-                                <th class="text-left notes-column">保障备注</th>
-                                <th class="text-center no-export">操作</th>
+                                <th class="text-center col-idx">序号</th>
+                                <th class="text-center col-title">会议名称</th>
+                                <th class="text-center col-time">起止时间</th>
+                                <th class="text-center col-loc">地点</th>
+                                <th class="text-center col-type">类型</th>
+                                <th class="text-center col-dept">主办科室</th>
+                                <th class="text-center col-leader">参会领导</th>
+                                <th class="text-center col-scope">参会范围</th>
+                                <th class="text-left col-notes">保障备注</th>
+                                <th class="text-center col-ops no-export">操作</th>
                             </tr>
                         </thead>
                         <tbody id="meetingList"></tbody>
@@ -158,16 +178,14 @@
                 '突发事件': 'bg-red-50 text-red-700 border-red-200'
             };
 
+            // 排序逻辑：正在进行的置顶，且按结束时间降序
             meetingDataList.sort((a, b) => {
                 const endA = a.meeting_end_time ? new Date(a.meeting_end_time) : new Date(a.meeting_time);
                 const endB = b.meeting_end_time ? new Date(b.meeting_end_time) : new Date(b.meeting_time);
-                
                 const isAActive = endA >= today;
                 const isBActive = endB >= today;
-
                 if (isAActive && !isBActive) return -1;
                 if (!isAActive && isBActive) return 1;
-                
                 return endB - endA;
             });
 
@@ -179,30 +197,30 @@
                 const textColorClass = isFutureOrToday ? 'text-gray-800' : 'text-gray-400';
                 const rowHighlightClass = isFutureOrToday ? 'bg-pink-50 border-l-4 border-l-pink-400' : 'opacity-60 bg-white';
                 
-                let timeDisplay = `<div class="text-blue-600 font-normal">起: ${m.meeting_time.replace('T', ' ')}</div>`;
+                let timeDisplay = `<div class="text-blue-600 text-xs">起: ${m.meeting_time.replace('T', ' ')}</div>`;
                 if (m.meeting_end_time && m.meeting_end_time.trim() !== "") {
-                    timeDisplay += `<div class="text-red-500 font-normal">止: ${m.meeting_end_time.replace('T', ' ')}</div>`;
+                    timeDisplay += `<div class="text-red-500 text-xs">止: ${m.meeting_end_time.replace('T', ' ')}</div>`;
                 }
 
                 let statusColor = m.status.includes('镇街') ? 'text-red-600' : (m.status.includes('区市') ? 'text-blue-600' : 'text-gray-500');
                 const typeStyle = typeColorMap[m.meeting_type] || 'bg-gray-50 text-gray-700 border-gray-200';
                 
                 tbody.innerHTML += `
-                    <tr class="hover:bg-pink-100/50 transition-colors ${rowHighlightClass}">
-                        <td class="text-center text-sm nowrap-column font-normal ${textColorClass}">${index + 1}</td>
-                        <td class="text-center text-sm nowrap-column ${isFutureOrToday ? 'font-bold text-gray-800' : 'font-normal text-gray-400'}">${m.title}</td>
-                        <td class="text-left whitespace-nowrap text-sm px-4 font-normal">${timeDisplay}</td>
-                        <td class="text-center text-sm nowrap-column font-normal ${textColorClass}">${m.location}</td>
-                        <td class="text-center nowrap-column">
-                            <span class="px-3 py-1 rounded-full text-xs font-normal border ${typeStyle}">${m.meeting_type}</span>
+                    <tr class="hover:bg-pink-100/30 transition-colors ${rowHighlightClass}">
+                        <td class="text-center font-normal ${textColorClass}">${index + 1}</td>
+                        <td class="text-center font-bold cell-content ${textColorClass}">${m.title}</td>
+                        <td class="text-left px-2">${timeDisplay}</td>
+                        <td class="text-center cell-content ${textColorClass}">${m.location}</td>
+                        <td class="text-center">
+                            <span class="px-2 py-0.5 rounded-full text-[10px] border ${typeStyle}">${m.meeting_type}</span>
                         </td>
-                        <td class="text-center text-sm nowrap-column font-normal ${textColorClass}">${m.department || '-'}</td>
-                        <td class="text-center font-normal">${createLeaderTags(m.leader)}</td>
-                        <td class="text-center nowrap-column text-sm font-normal ${statusColor}">${m.status}</td>
-                        <td class="notes-column text-sm leading-relaxed font-normal ${textColorClass}">${m.notes || '-'}</td>
-                        <td class="text-center whitespace-nowrap no-export">
-                            <button onclick="editMeeting(${m.id})" class="text-blue-500 hover:text-blue-700 font-normal mr-3 underline text-sm">修改</button>
-                            <button onclick="deleteMeeting(${m.id})" class="text-red-400 hover:text-red-600 font-normal underline text-sm">删除</button>
+                        <td class="text-center cell-content ${textColorClass}">${m.department || '-'}</td>
+                        <td class="text-center">${createLeaderTags(m.leader)}</td>
+                        <td class="text-center text-xs font-bold ${statusColor}">${m.status}</td>
+                        <td class="text-left col-notes cell-content ${textColorClass}">${m.notes || '-'}</td>
+                        <td class="text-center no-export">
+                            <button onclick="editMeeting(${m.id})" class="text-blue-500 hover:text-blue-700 underline text-xs mr-2">修改</button>
+                            <button onclick="deleteMeeting(${m.id})" class="text-red-400 hover:text-red-600 underline text-xs">删除</button>
                         </td>
                     </tr>`;
             });
@@ -211,7 +229,7 @@
         function createLeaderTags(str) {
             if (!str || str === '-') return '-';
             return str.split(/[、,，\s]+/).filter(n => n.trim() !== '').map(name => 
-                `<span class="inline-block bg-blue-50 text-black border border-blue-100 px-2 py-0.5 rounded-lg mr-1 mb-1 text-sm whitespace-nowrap font-normal">${name}</span>`
+                `<span class="inline-block bg-blue-50 text-gray-700 border border-blue-100 px-1.5 py-0.5 rounded mr-1 mb-1 text-[11px] font-medium">${name}</span>`
             ).join('');
         }
 
@@ -230,7 +248,7 @@
                     const existStart = new Date(exist.meeting_time).getTime();
                     const existEnd = exist.meeting_end_time ? new Date(exist.meeting_end_time).getTime() : existStart + 60000;
                     if (newStart < existEnd && newEnd > existStart) {
-                        alert(`⚠️ 会议冲突！${newData.location}会议室  在该时段已有如下会议占用：\n「${exist.title}」`);
+                        alert(`⚠️ 会议冲突！${newData.location} 此时段已被占用：\n「${exist.title}」`);
                         return true;
                     }
                 }
@@ -286,14 +304,14 @@
             document.getElementById('formTitle').innerText = '➕ 新增会议任务';
         }
 
-        // --- 核心修改：带密码验证的删除功能 ---
+        // --- 核心逻辑修改：带密码校验的删除 ---
         async function deleteMeeting(id) {
-            if (!confirm("确认删除？该操作不可恢复。")) return;
+            if (!confirm("确定要删除这条排期记录吗？")) return;
 
-            const adminPass = prompt("请输入管理员删除密码：");
-            if (adminPass === null) return; // 取消
+            const adminPass = prompt("请输入管理员授权密码以执行删除操作：");
+            if (adminPass === null) return; 
             if (adminPass.trim() === "") {
-                alert("密码不能为空！");
+                alert("密码错误：不能为空");
                 return;
             }
 
@@ -306,16 +324,16 @@
                     }
                 });
 
+                const result = await res.json();
                 if (res.ok) {
-                    alert("✅ 删除成功");
+                    alert("✅ 已成功删除记录");
                     loadMeetings();
                 } else {
-                    const result = await res.json();
-                    alert("❌ 删除失败：" + (result.error || "授权失败"));
+                    alert("❌ 删除失败：" + (result.error || "授权验证未通过"));
                 }
             } catch (e) {
                 console.error(e);
-                alert("请求出错，请重试");
+                alert("网络繁忙，请稍后再试");
             }
         }
 
