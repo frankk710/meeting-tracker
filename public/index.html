@@ -202,7 +202,7 @@
                         </td>
                         <td class="text-center cell-content ${textColor}">${m.department || '-'}</td>
                         <td class="text-center">${createLeaderTags(m.leader, isFuture)}</td>
-                        <td class="text-center text-xs font-bold ${m.status.includes('镇街') ? 'text-red-600' : 'text-blue-600'}">${m.status}</td>
+                        <td class="text-center text-xs font-bold ${isFuture ? '' : 'opacity-40'} ${m.status.includes('镇街') ? 'text-red-600' : (m.status.includes('区市') ? 'text-blue-600' : 'text-gray-400')}">${m.status}</td>
                         <td class="text-left col-notes cell-content ${textColor}">${m.notes || '-'}</td>
                         <td class="text-center no-export">
                             <button onclick="editMeeting(${m.id})" class="text-blue-500 underline text-xs mr-2">修改</button>
