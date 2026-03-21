@@ -230,7 +230,7 @@
                     const existS = new Date(exist.meeting_time).getTime();
                     const existE = exist.meeting_end_time ? new Date(exist.meeting_end_time).getTime() : (existS + 3600000);
                     if (newS < existE && newE > existS) {
-                        alert(`⚠️ 会议冲突！${newData.location}会场  在该时间段已有如下会议占用：「${exist.title}」`);
+                        alert(`⚠️ 会议冲突！${newData.location}会场  在该时间段已有如下会议占用：\n「${exist.title}」`);
                         return true;
                     }
                 }
