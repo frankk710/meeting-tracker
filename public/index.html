@@ -29,10 +29,10 @@
         /* 列宽占比 */
         .col-idx { width: 60px; }
         .col-title { width: 25%; }
-        .col-time { width: 175px; }
-        .col-loc { width: 90px; }
-        .col-type { width: 95px; }
-        .col-dept { width: 90px; }
+        .col-time { width: 175px; white-space: nowrap; }
+        .col-loc { width: 110px; white-space: nowrap; }
+        .col-type { width: 95px; white-space: nowrap; }
+        .col-dept { width: 90px; white-space: nowrap; }
         .col-leader { width: 9%; }
         .col-scope { width: 110px; }
         .col-notes { width: auto; } 
@@ -196,11 +196,11 @@
                         <td class="text-center ${textColor}">${index + 1}</td>
                         <td class="text-center ${fontWeight} cell-content ${textColor}">${m.title}</td>
                         <td class="text-left px-2 whitespace-nowrap">${timeDisplay}</td>
-                        <td class="text-center cell-content ${textColor}">${m.location}</td>
+                        <td class="text-center whitespace-nowrap ${textColor}">${m.location}</td>
                         <td class="text-center whitespace-nowrap">
-                            <span class="px-2 py-0.5 rounded-full text-sm border ${typeStyle}">${m.meeting_type}</span>
+                            <span class="px-2 py-0.5 rounded-full text-sm border whitespace-nowrap ${typeStyle}">${m.meeting_type}</span>
                         </td>
-                        <td class="text-center cell-content ${textColor}">${m.department || '-'}</td>
+                        <td class="text-center whitespace-nowrap ${textColor}">${m.department || '-'}</td>
                         <td class="text-center">${createLeaderTags(m.leader, isFuture)}</td>
                         <td class="text-center text-xs font-bold ${isFuture ? '' : 'opacity-40'} ${m.status.includes('镇街') ? 'text-red-600' : (m.status.includes('区市') ? 'text-blue-600' : 'text-gray-400')}">${m.status}</td>
                         <td class="text-left col-notes cell-content ${textColor}">${m.notes || '-'}</td>
